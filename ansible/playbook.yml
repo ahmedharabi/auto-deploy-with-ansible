@@ -1,0 +1,43 @@
+- name: Minimal Node.js app deployment
+  hosts: target-node
+  become: yes
+  tasks:
+
+    - name: Create deployment user
+      user:
+        name: webadmin
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Create app folder
+      file:
+        path: /opt/app
+        state: directory
+        owner: webadmin
+        mode: '0755'
+
+    - name: Copy app files
+      copy:
+        src: ../app/
+        dest: /opt/app/
+        owner: webadmin
+        mode: '0755'
+
+    - name: Install Node.js and npm from Ubuntu repo
+      apt:
+        name:
+          - nodejs
+          - npm
+        state: present
+        update_cache: yes
+
+    - name: Install npm dependencies
+      become_user: webadmin
+      shell: npm install
+      args:
+        chdir: /opt/app
+
+    - name: Run the Node.js app in background
+      shell: nohup node /opt/app/index.js > /dev/null 2>&1 &
+      args:
+        executable: /bin/bash
